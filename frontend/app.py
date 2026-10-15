@@ -1,46 +1,111 @@
+
 from pathlib import Path
+from datetime import datetime
+
 import streamlit as st
 
+# =========================================================
+# ClinScribe AI — Premium Clinical Documentation Workspace
+# Frontend prototype. Connect your team's backend API
+# where indicated; do not treat demo drafts as AI-generated.
+# =========================================================
+
 st.set_page_config(
-    page_title="ClinScribe AI | Dashboard",
+    page_title="ClinScribe AI | Clinical Workspace",
     page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Session state defaults
-defaults = {
+# Load stylesheet relative to this file
+CSS_PATH = Path(__file__).parent / "styles.css"
+if CSS_PATH.exists():
+    st.markdown(
+        f"<style>{CSS_PATH.read_text(encoding='utf-8')}</style>",
+        unsafe_allow_html=True,
+    )
+
+# ---------------- SESSION STATE ----------------
+DEFAULTS = {
     "navigation": "Dashboard",
     "pending_navigation": None,
-    "draft": None,
-    "approved": False,
-    "consultations": 0,
+    "transcript": "",
+    "soap": {
+        "Subjective": "",
+        "Objective": "",
+        "Assessment": "",
+        "Plan": "",
+    },
+    "draft_created": False,
+    "review_confirmed": False,
+    "saved_notes": [],
+    "patient_id": "",
+    "patient_name": "",
+    "demo_mode": True,
 }
 
-for key, value in defaults.items():
+for key, value in DEFAULTS.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-# Apply navigation changes BEFORE creating the radio widget
-pending = st.session_state.pending_navigation
-if pending:
-    st.session_state.navigation = pending
+if st.session_state.pending_navigation:
+    st.session_state.navigation = st.session_state.pending_navigation
     st.session_state.pending_navigation = None
 
-# Load CSS
-css_path = Path(__file__).parent / "styles.css"
-if css_path.exists():
+
+# ---------------- HELPERS ----------------
+def navigate(page):
+    st.session_state.pending_navigation = page
+    st.rerun()
+
+
+def section_heading(eyebrow, title, subtitle=""):
     st.markdown(
-        f"<style>{css_path.read_text(encoding='utf-8')}</style>",
+        f"""
+        <div class="page-intro">
+            <div class="eyebrow">{eyebrow}</div>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
 
-def navigate_to(page):
-    st.session_state.pending_navigation = page
+def panel_title(title, subtitle=""):
+    st.markdown(
+        f"""
+        <div class="section-title">
+            <h2>{title}</h2>
+            <p>{subtitle}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-# Sidebar
+def metric_card(icon, label, value, caption, style="blue"):
+    st.markdown(
+        f"""
+        <div class="metric-card {style}">
+            <div class="metric-icon">{icon}</div>
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+            <div class="metric-caption">{caption}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def demo_notice():
+    st.info(
+        "Prototype mode: sample values and draft content are for demonstration. "
+        "Use verified backend output for actual transcription and AI generation."
+    )
+
+
+# ---------------- SIDEBAR ----------------
 with st.sidebar:
     st.markdown(
         """
@@ -48,7 +113,7 @@ with st.sidebar:
             <div class="brand-icon">✚</div>
             <div>
                 <div class="brand-title">ClinScribe <span>AI</span></div>
-                <div class="brand-subtitle">Smarter Notes. Better Care.</div>
+                <div class="brand-subtitle">CLINICAL INTELLIGENCE</div>
             </div>
         </div>
         <div class="sidebar-label">WORKSPACE</div>
@@ -56,15 +121,17 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    page = st.radio(
+    pages = [
+        "Dashboard",
+        "New Consultation",
+        "Review Notes",
+        "Patient History",
+        "Settings",
+    ]
+
+    selected_page = st.radio(
         "Navigation",
-        [
-            "Dashboard",
-            "New Consultation",
-            "Review Notes",
-            "Patient History",
-            "Settings",
-        ],
+        pages,
         key="navigation",
         label_visibility="collapsed",
     )
@@ -73,29 +140,37 @@ with st.sidebar:
         """
         <div class="sidebar-footer">
             <div class="sidebar-heart">♡</div>
-            <b>AI-powered documentation</b>
-            <p>Save time. Focus on care.</p>
-            <span class="prototype-status">● Prototype mode</span>
+            <b>Designed for better care</b>
+            <p>Less paperwork. More time for patients.</p>
+            <span class="prototype-status">● PROTOTYPE</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-# Header
-left, right = st.columns([3, 1], vertical_alignment="center")
 
-with left:
+# ---------------- TOP BAR ----------------
+top_left, top_right = st.columns([4, 1])
+
+with top_left:
     st.markdown(
-        '<div class="search-box">⌕ &nbsp; Search patients, reports, or keywords...</div>',
+        """
+        <div class="search-box">
+            ✦ &nbsp; Clinical documentation workspace
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-with right:
+with top_right:
     st.markdown(
         """
         <div class="profile-box">
-            <span class="avatar">D</span>
-            <div><b>Clinician Workspace</b><small>Demo account</small></div>
+            <div class="avatar">CS</div>
+            <div>
+                <b>Clinical Team</b>
+                <small>Workspace</small>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -103,424 +178,453 @@ with right:
 
 st.markdown('<div class="top-line"></div>', unsafe_allow_html=True)
 
-# ---------------- DASHBOARD ----------------
-if page == "Dashboard":
-    hero, illustration = st.columns([2, 1])
 
-    with hero:
+# =========================================================
+# DASHBOARD
+# =========================================================
+if selected_page == "Dashboard":
+
+    left, right = st.columns([1.6, 1], gap="large")
+
+    with left:
         st.markdown(
             """
             <div class="welcome">
-                <span class="eyebrow">CLINICAL WORKSPACE</span>
-                <h1>Welcome to your workspace ✨</h1>
-                <p>Spend less time on paperwork and more time focusing on care.</p>
+                <div class="eyebrow">YOUR CLINICAL WORKSPACE</div>
+                <h1>Clinical intelligence,<br>reimagined.</h1>
+                <p>Transform consultations into structured documentation,
+                with clinician review at every step.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    with illustration:
+        if st.button(
+            "＋  Start a consultation",
+            type="primary",
+            use_container_width=False,
+        ):
+            navigate("New Consultation")
+
+    with right:
         st.markdown(
             """
             <div class="hero-illustration">
                 <div class="hero-document">▤</div>
-                <div class="hero-heart">♡</div>
-                <div class="hero-caption">From consultation<br>to structured notes</div>
+                <div class="hero-heart">✦</div>
+                <div class="hero-caption">
+                    CLINICAL AI WORKSPACE<br>
+                    Conversation to<br>structured documentation
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    metrics = [
-        ("Total Consultations", st.session_state.consultations, "▤", "blue"),
-        ("Draft Notes", int(st.session_state.draft is not None), "✎", "green"),
-        ("Reviews Confirmed", int(st.session_state.approved), "✓", "purple"),
-        ("AI Integration", "Pending", "✦", "orange"),
-    ]
+    st.write("")
 
-    cols = st.columns(4)
-    for col, (label, value, icon, color) in zip(cols, metrics):
-        with col:
-            st.markdown(
-                f"""
-                <div class="metric-card {color}">
-                    <div class="metric-icon">{icon}</div>
-                    <div class="metric-label">{label}</div>
-                    <div class="metric-value">{value}</div>
-                    <div class="metric-caption">Current demo session</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    # Prototype values are clearly labelled; replace with API data later.
+    panel_title("Workspace overview", "Illustrative prototype metrics")
 
-    st.markdown(
-        """
-        <div class="section-title">
-            <h2>Your workspace</h2>
-            <p>Everything you need to get started.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    m1, m2, m3, m4 = st.columns(4, gap="medium")
 
-    activity, recent = st.columns([1.4, 1], gap="large")
+    with m1:
+        metric_card("▣", "Consultations", "—", "Connect backend for live totals", "blue")
+    with m2:
+        metric_card("✧", "Draft notes", "—", "Pending documentation", "green")
+    with m3:
+        metric_card("✓", "Reviewed notes", "—", "Clinician review status", "purple")
+    with m4:
+        metric_card("◷", "Time saved", "—", "Requires validated usage data", "orange")
 
-    with activity:
-        st.markdown(
-            f"""
-            <div class="surface-card">
-                <h3>📊 Consultation activity</h3>
-                <p class="muted">Current browser session</p>
-                <div class="activity-number">
-                    {st.session_state.consultations}
-                    <small>consultations</small>
-                </div>
-                <div class="activity-bars">
-                    <i style="height:28%"></i>
-                    <i style="height:42%"></i>
-                    <i style="height:35%"></i>
-                    <i style="height:65%"></i>
-                    <i style="height:48%"></i>
-                    <i style="height:82%"></i>
-                </div>
-                <p class="small-note">Illustrative chart — not historical analytics.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    panel_title("Your workflow", "Move from consultation to reviewed clinical notes")
 
-    with recent:
-        has_draft = st.session_state.draft is not None
-        status = (
-            "Review confirmed"
-            if st.session_state.approved
-            else "Review required"
-            if has_draft
-            else "Ready to start"
-        )
+    q1, q2, q3 = st.columns(3, gap="medium")
 
-        st.markdown(
-            f"""
-            <div class="surface-card recent-card">
-                <h3>📄 Recent activity</h3>
-                <p class="muted">Workspace overview</p>
-                <div class="recent-document">✎</div>
-                <b>{"Clinical note draft" if has_draft else "No draft yet"}</b>
-                <p class="muted">
-                    {"A draft is ready for review." if has_draft else "Start a consultation to create your first draft."}
-                </p>
-                <div class="status-pill">{status}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown(
-        """
-        <div class="section-title">
-            <h2>Quick actions</h2>
-            <p>Jump straight into your next task.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    a, b, c = st.columns(3, gap="medium")
-
-    with a:
+    with q1:
         st.markdown(
             """
             <div class="quick-card blue-card">
-                <div class="quick-icon">＋</div>
-                <h3>New consultation</h3>
-                <p>Enter a fictional transcript and prepare a draft.</p>
+                <div class="quick-icon">🎙</div>
+                <h3>Capture</h3>
+                <p>Upload consultation audio or enter a transcript.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.button(
-            "Start consultation →",
-            type="primary",
-            use_container_width=True,
-            on_click=navigate_to,
-            args=("New Consultation",),
-        )
+        if st.button("Open consultation →", key="capture", use_container_width=True):
+            navigate("New Consultation")
 
-    with b:
+    with q2:
         st.markdown(
             """
             <div class="quick-card purple-card">
-                <div class="quick-icon">▤</div>
-                <h3>Review notes</h3>
-                <p>Edit SOAP sections before confirming your review.</p>
+                <div class="quick-icon">✧</div>
+                <h3>Structure</h3>
+                <p>Organize clinical information into SOAP sections.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.button(
-            "Review notes →",
-            use_container_width=True,
-            on_click=navigate_to,
-            args=("Review Notes",),
-        )
+        if st.button("Review draft →", key="structure", use_container_width=True):
+            navigate("Review Notes")
 
-    with c:
+    with q3:
         st.markdown(
             """
             <div class="quick-card green-card">
-                <div class="quick-icon">♡</div>
-                <h3>Patient history</h3>
-                <p>Check the current prototype session status.</p>
+                <div class="quick-icon">✓</div>
+                <h3>Review</h3>
+                <p>Check, edit and confirm notes before finalization.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.button(
-            "View history →",
-            use_container_width=True,
-            on_click=navigate_to,
-            args=("Patient History",),
-        )
+        if st.button("View history →", key="history", use_container_width=True):
+            navigate("Patient History")
 
     st.markdown(
         """
         <div class="bottom-banner">
-            <div class="banner-icon">✦</div>
+            <div class="banner-icon">✚</div>
             <div>
-                <b>Better documentation. Better healthcare.</b>
-                <p>Structured drafts that support clinician judgment.</p>
+                <b>Clinician remains in control</b>
+                <p>AI-assisted documentation should be checked by a qualified
+                clinician before use in patient care.</p>
             </div>
         </div>
         <div class="footer-note">
-            ClinScribe AI · Hackathon prototype · Use fictional data only
+            ClinScribe AI · Clinical documentation prototype
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-# ---------------- NEW CONSULTATION ----------------
-elif page == "New Consultation":
-    st.markdown(
-        """
-        <div class="page-intro">
-            <span class="eyebrow">WORKSPACE / NEW CONSULTATION</span>
-            <h1>Create a consultation draft</h1>
-            <p>Enter a fictional transcript to prepare a draft for review.</p>
-        </div>
-        <div class="safety-notice">
-            <b>Prototype notice</b><br>
-            AI medical interpretation and speech recognition are not connected.
-            Use fictional data only.
-        </div>
-        """,
-        unsafe_allow_html=True,
+
+# =========================================================
+# NEW CONSULTATION
+# =========================================================
+elif selected_page == "New Consultation":
+
+    section_heading(
+        "CONSULTATION WORKSPACE",
+        "New consultation",
+        "Capture consultation information and prepare a structured clinical note.",
     )
 
-    consent = st.checkbox(
-        "I confirm appropriate consent for this fictional demo."
-    )
+    demo_notice()
 
     st.markdown(
-        """
-        <div class="surface-card form-card">
-            <h3>01 · Audio sample</h3>
-            <p>Optional preview only; audio is not transcribed.</p>
-        </div>
-        """,
+        '<div class="safety-notice"><b>Privacy reminder</b><br>'
+        'For this demonstration, use fictional patient information and '
+        'approved sample audio only. Do not upload identifiable patient data '
+        'unless your system is authorized to handle it.</div>',
         unsafe_allow_html=True,
     )
 
-    audio = st.file_uploader(
-        "Upload audio",
-        type=["wav", "mp3", "m4a", "ogg"],
-    )
+    with st.container(border=True):
+        panel_title("01 · Consultation details", "Add basic details for this draft.")
 
-    if audio:
-        st.audio(audio)
-        st.caption("Preview only — speech recognition is not connected.")
+        c1, c2 = st.columns(2)
 
-    st.markdown(
-        """
-        <div class="surface-card form-card">
-            <h3>02 · Transcript</h3>
-            <p>Use fictional text for this demo.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        with c1:
+            patient_name = st.text_input(
+                "Patient label",
+                value=st.session_state.patient_name,
+                placeholder="e.g. Demo Patient 01",
+            )
 
-    transcript = st.text_area(
-        "Consultation transcript",
-        height=210,
-        placeholder=(
-            "Doctor: What brings you in today?\n"
-            "Patient: I have had a headache for two days.\n"
-            "Doctor: Do you have a fever?\n"
-            "Patient: No, I do not have a fever."
-        ),
-        label_visibility="collapsed",
-    )
+        with c2:
+            patient_id = st.text_input(
+                "Demo reference ID",
+                value=st.session_state.patient_id,
+                placeholder="e.g. DEMO-001",
+            )
 
-    if st.button(
-        "Prepare draft note →",
-        type="primary",
-        use_container_width=True,
-    ):
-        if not consent:
-            st.error("Please confirm consent first.")
-        elif not transcript.strip():
-            st.error("Please enter a fictional transcript.")
+        st.session_state.patient_name = patient_name
+        st.session_state.patient_id = patient_id
+
+    with st.container(border=True):
+        panel_title("02 · Audio or transcript", "Choose an input method.")
+
+        input_method = st.radio(
+            "Input method",
+            ["Enter transcript", "Upload audio"],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+
+        if input_method == "Upload audio":
+            audio_file = st.file_uploader(
+                "Upload sample consultation audio",
+                type=["wav", "mp3", "m4a", "ogg", "mp4"],
+                help="Audio upload is not transcription by itself. "
+                     "Your backend must process this file.",
+            )
+
+            if audio_file is not None:
+                st.audio(audio_file)
+                st.caption(
+                    f"Selected file: {audio_file.name}. "
+                    "Connect your team's transcription endpoint to process it."
+                )
+
+                st.warning(
+                    "Audio preview is available. This frontend code does not "
+                    "transcribe the recording without a connected backend."
+                )
+
         else:
-            st.session_state.draft = {
-                "transcript": transcript.strip(),
-                "subjective": transcript.strip(),
-                "objective": "Not provided in the transcript.",
-                "assessment": "Requires clinician assessment.",
-                "plan": "Requires clinician input.",
-            }
-            st.session_state.consultations += 1
-            st.session_state.approved = False
-            navigate_to("Review Notes")
+            transcript_value = st.text_area(
+                "Consultation transcript",
+                value=st.session_state.transcript,
+                height=230,
+                placeholder=(
+                    "Paste a fictional sample consultation transcript here..."
+                ),
+                help="Use approved sample content for your presentation.",
+            )
+            st.session_state.transcript = transcript_value
+
+    st.write("")
+
+    generate_col, clear_col = st.columns([2, 1])
+
+    with generate_col:
+        if st.button(
+            "✧  Prepare SOAP draft",
+            type="primary",
+            use_container_width=True,
+        ):
+            if not st.session_state.transcript.strip():
+                st.warning(
+                    "Enter a transcript first. Audio transcription requires "
+                    "the connected backend."
+                )
+            else:
+                # This action opens an editable template.
+                # It deliberately does NOT claim to generate AI output.
+                st.session_state.soap = {
+                    "Subjective": "",
+                    "Objective": "",
+                    "Assessment": "",
+                    "Plan": "",
+                }
+                st.session_state.draft_created = True
+                st.session_state.review_confirmed = False
+                st.session_state.pending_navigation = "Review Notes"
+                st.rerun()
+
+    with clear_col:
+        if st.button("Clear transcript", use_container_width=True):
+            st.session_state.transcript = ""
+            st.session_state.draft_created = False
             st.rerun()
 
-# ---------------- REVIEW NOTES ----------------
-elif page == "Review Notes":
-    st.markdown(
-        """
-        <div class="page-intro">
-            <span class="eyebrow">WORKSPACE / NOTE REVIEW</span>
-            <h1>Review clinical note</h1>
-            <p>Inspect and edit each SOAP section.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.caption(
+        "Connect this button to your friend's actual SOAP-generation endpoint "
+        "before describing the draft as AI-generated."
     )
 
-    draft = st.session_state.draft
 
-    if not draft:
-        st.info("No draft yet. Create a new consultation first.")
-        st.button(
-            "Go to consultation →",
-            type="primary",
-            on_click=navigate_to,
-            args=("New Consultation",),
+# =========================================================
+# REVIEW NOTES
+# =========================================================
+elif selected_page == "Review Notes":
+
+    section_heading(
+        "CLINICAL DOCUMENTATION",
+        "Review notes",
+        "Edit each SOAP section and confirm the draft only after reviewing it.",
+    )
+
+    if not st.session_state.draft_created:
+        st.info(
+            "No draft is open yet. Start a consultation to create a review template."
         )
+
+        if st.button("＋ Start consultation", type="primary"):
+            navigate("New Consultation")
+
     else:
-        st.warning(
-            "Review all sections carefully. This is a demo template, "
-            "not a verified medical record."
+        st.markdown(
+            f"""
+            <div class="surface-card">
+                <div class="eyebrow">DRAFT WORKSPACE</div>
+                <h3>{st.session_state.patient_name or "Demo patient"}</h3>
+                <p>Reference: {st.session_state.patient_id or "Not provided"}</p>
+                <span class="status-pill">● Awaiting clinician review</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        with st.expander("View original transcript", expanded=True):
-            st.write(draft["transcript"])
+        st.write("")
+        demo_notice()
 
         with st.form("soap_review_form"):
+            st.markdown("### S · Subjective")
             subjective = st.text_area(
-                "S · Subjective",
-                value=draft["subjective"],
+                "Reported symptoms and patient history",
+                value=st.session_state.soap["Subjective"],
                 height=120,
             )
+
+            st.markdown("### O · Objective")
             objective = st.text_area(
-                "O · Objective",
-                value=draft["objective"],
-                height=90,
-            )
-            assessment = st.text_area(
-                "A · Assessment",
-                value=draft["assessment"],
-                height=90,
-            )
-            plan = st.text_area(
-                "P · Plan",
-                value=draft["plan"],
-                height=90,
+                "Observed findings and measurements",
+                value=st.session_state.soap["Objective"],
+                height=120,
             )
 
-            save = st.form_submit_button(
+            st.markdown("### A · Assessment")
+            assessment = st.text_area(
+                "Clinical assessment for clinician verification",
+                value=st.session_state.soap["Assessment"],
+                height=120,
+            )
+
+            st.markdown("### P · Plan")
+            plan = st.text_area(
+                "Proposed next steps for clinician review",
+                value=st.session_state.soap["Plan"],
+                height=120,
+            )
+
+            save_draft = st.form_submit_button(
                 "Save draft changes",
                 use_container_width=True,
             )
 
-        if save:
-            st.session_state.draft = {
-                "transcript": draft["transcript"],
-                "subjective": subjective,
-                "objective": objective,
-                "assessment": assessment,
-                "plan": plan,
+        if save_draft:
+            st.session_state.soap = {
+                "Subjective": subjective,
+                "Objective": objective,
+                "Assessment": assessment,
+                "Plan": plan,
             }
-            st.session_state.approved = False
+            st.session_state.review_confirmed = False
             st.success("Draft changes saved in this session.")
-            st.rerun()
 
-        reviewed = st.checkbox(
-            "I have reviewed this fictional demo note."
-        )
+        st.write("")
 
         if st.button(
-            "Confirm demo review",
+            "✓  Confirm review",
             type="primary",
             use_container_width=True,
         ):
-            if reviewed:
-                st.session_state.approved = True
-                st.success(
-                    "Demo review confirmed. No official record created."
-                )
-            else:
-                st.error("Please confirm that you reviewed the note.")
-
-        if st.session_state.approved:
-            st.markdown(
-                '<div class="status-pill">✓ Demo review confirmed</div>',
-                unsafe_allow_html=True,
+            st.session_state.review_confirmed = True
+            st.session_state.saved_notes.append(
+                {
+                    "patient": st.session_state.patient_name or "Demo patient",
+                    "reference": st.session_state.patient_id or "Not provided",
+                    "reviewed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "soap": st.session_state.soap.copy(),
+                }
+            )
+            st.success(
+                "Review confirmed for this prototype session. "
+                "This is not a permanent backend save."
             )
 
-# ---------------- PATIENT HISTORY ----------------
-elif page == "Patient History":
+        if st.session_state.review_confirmed:
+            st.success("Review status: confirmed in the current session.")
+
+        st.caption(
+            "This prototype stores changes in Streamlit session state only. "
+            "Connect your backend to persist records securely."
+        )
+
+
+# =========================================================
+# PATIENT HISTORY
+# =========================================================
+elif selected_page == "Patient History":
+
+    section_heading(
+        "RECORDS WORKSPACE",
+        "Consultation history",
+        "Review notes created during this current demo session.",
+    )
+
     st.markdown(
-        """
-        <div class="page-intro">
-            <span class="eyebrow">WORKSPACE / HISTORY</span>
-            <h1>Session history</h1>
-            <p>Prototype status only; no patient records are stored.</p>
-        </div>
-        """,
+        '<div class="safety-notice"><b>Demo data only</b><br>'
+        'This page displays session records, not a connected medical record system.</div>',
         unsafe_allow_html=True,
     )
 
-    x, y, z = st.columns(3)
-    x.metric("Consultations", st.session_state.consultations)
-    y.metric(
-        "Draft available",
-        "Yes" if st.session_state.draft else "No",
-    )
-    z.metric(
-        "Demo review",
-        "Confirmed" if st.session_state.approved else "Pending",
+    if not st.session_state.saved_notes:
+        st.info(
+            "No reviewed notes in this session yet. Create and review a draft "
+            "to see it listed here."
+        )
+    else:
+        for index, record in enumerate(
+            reversed(st.session_state.saved_notes), start=1
+        ):
+            with st.expander(
+                f"{index}. {record['patient']} · {record['reviewed_at']}"
+            ):
+                st.write(f"Reference: {record['reference']}")
+
+                for heading, content in record["soap"].items():
+                    st.markdown(f"**{heading}**")
+                    st.write(content or "No content entered.")
+
+
+# =========================================================
+# SETTINGS
+# =========================================================
+elif selected_page == "Settings":
+
+    section_heading(
+        "WORKSPACE CONFIGURATION",
+        "Settings",
+        "Review the current frontend prototype configuration.",
     )
 
-    st.info(
-        "This prototype uses session state and is not persistent storage."
-    )
+    with st.container(border=True):
+        st.markdown("### Workspace")
 
-# ---------------- SETTINGS ----------------
-elif page == "Settings":
-    st.markdown(
-        """
-        <div class="page-intro">
-            <span class="eyebrow">WORKSPACE / SETTINGS</span>
-            <h1>Settings</h1>
-            <p>Current prototype capabilities.</p>
-        </div>
-        <div class="surface-card">
-            <h3>Application status</h3>
-            <p>AI interpretation: Not connected</p>
-            <p>Speech recognition: Not connected</p>
-            <p>Storage: Current Streamlit session only</p>
-            <p>Clinical use: Not supported</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        st.text_input(
+            "Application name",
+            value="ClinScribe AI",
+            disabled=True,
+        )
+
+        st.text_input(
+            "Frontend framework",
+            value="Streamlit",
+            disabled=True,
+        )
+
+        st.text_input(
+            "Current mode",
+            value="Frontend prototype",
+            disabled=True,
+        )
+
+    with st.container(border=True):
+        st.markdown("### Integration status")
+
+        st.warning(
+            "Backend integration is not verified by this frontend file. "
+            "Check the actual API connection before presenting transcription "
+            "or SOAP generation as working features."
+        )
+
+        st.markdown(
+            """
+            **Integration checklist**
+            - Audio file is sent to the backend transcription endpoint.
+            - Transcription response is shown in the consultation form.
+            - Transcript is sent to the SOAP-generation endpoint.
+            - Returned SOAP fields populate the review editor.
+            - Save/review actions persist through the authorized backend.
+            """
+        )
+
+    st.caption(
+        "Do not store API keys in this file. Use environment variables or "
+        "your team's approved secrets configuration."
     )
