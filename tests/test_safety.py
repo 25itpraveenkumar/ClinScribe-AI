@@ -43,3 +43,23 @@ def test_empty_note_cannot_be_approved():
 
     with pytest.raises(ValueError):
         approve_note(draft, "clinician-demo-01")
+
+from backend.safety.approval import (
+    ClinicalDraft,
+    approve_note,
+    finalize_note,
+)
+
+
+def test_unapproved_note_cannot_be_finalized():
+    draft = ClinicalDraft(content="Fictional consultation note")
+
+    with pytest.raises(PermissionError):
+        finalize_note(draft)
+
+
+def test_approved_note_can_be_finalized():
+    draft = ClinicalDraft(content="Fictional consultation note")
+    approve_note(draft, "clinician-demo-01")
+
+    assert finalize_note(draft) == "Fictional consultation note"

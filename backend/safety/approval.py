@@ -10,13 +10,23 @@ class ClinicalDraft:
 
 
 def approve_note(draft: ClinicalDraft, clinician_id: str) -> ClinicalDraft:
-    """Approve a draft only after an identified clinician explicitly reviews it."""
+    """Approve a non-empty draft after clinician review."""
     if not clinician_id or not clinician_id.strip():
         raise ValueError("A clinician identifier is required.")
 
-    if not draft.content.strip():
+    if not draft.content or not draft.content.strip():
         raise ValueError("Cannot approve an empty clinical note.")
 
     draft.approved = True
     draft.approved_by = clinician_id.strip()
     return draft
+
+
+def finalize_note(draft: ClinicalDraft) -> str:
+    """Return a note only after approval."""
+    if not draft.approved:
+        raise PermissionError(
+            "Clinical note cannot be finalized before clinician approval."
+        )
+
+    return draft.content
