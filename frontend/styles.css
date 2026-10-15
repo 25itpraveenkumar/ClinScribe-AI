@@ -1,0 +1,374 @@
+/* =========================================
+   ClinScribe AI — Clinical Workspace Theme
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --navy: #142943;
+    --navy-light: #203d5b;
+    --teal: #117c80;
+    --teal-dark: #0d6569;
+    --background: #f3f6fb;
+    --surface: #ffffff;
+    --text: #18304c;
+    --muted: #718096;
+    --border: #dce5ef;
+    --success: #16845b;
+    --danger: #c33e4d;
+}
+
+/* Main application */
+.stApp {
+    background: var(--background);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+}
+
+[data-testid="stHeader"] {
+    background: transparent;
+}
+
+[data-testid="stAppViewContainer"] > .main {
+    background: var(--background);
+}
+
+.block-container {
+    max-width: 1250px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: var(--navy);
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+[data-testid="stSidebar"] * {
+    color: #f4f7fc;
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    line-height: 1.7;
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.18);
+    margin-top: 1.4rem;
+    margin-bottom: 1.4rem;
+}
+
+/* Headings */
+h1, h2, h3 {
+    color: var(--text);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+h1 {
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+h2 {
+    font-size: 1.65rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+}
+
+/* Hero banner */
+.hero-banner {
+    background: linear-gradient(120deg, #142943 0%, #176f78 100%);
+    color: #ffffff;
+    padding: 2.4rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 12px 30px rgba(20,41,67,0.12);
+}
+
+.hero-banner h1,
+.hero-banner h2,
+.hero-banner p {
+    color: #ffffff !important;
+}
+
+.hero-banner p {
+    opacity: 0.88;
+    font-size: 1rem;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 1.2rem 1.3rem;
+    box-shadow: 0 4px 14px rgba(20,41,67,0.035);
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--navy);
+    font-weight: 800;
+}
+
+/* Cards */
+.feature-card {
+    background: var(--surface);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    box-shadow: 0 5px 18px rgba(20,41,67,0.04);
+}
+
+.feature-card h3 {
+    margin-top: 0;
+}
+
+.feature-card p {
+    color: var(--muted);
+    line-height: 1.75;
+}
+
+/* Buttons */
+.stButton > button,
+.stDownloadButton > button {
+    background: var(--teal);
+    color: #ffffff;
+    border: 1px solid var(--teal);
+    border-radius: 10px;
+    min-height: 2.8rem;
+    padding: 0.55rem 1.15rem;
+    font-weight: 650;
+    transition: all 0.18s ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background: var(--teal-dark);
+    color: #ffffff;
+    border-color: var(--teal-dark);
+    transform: translateY(-1px);
+}
+
+.stButton > button:focus,
+.stDownloadButton > button:focus {
+    box-shadow: 0 0 0 3px rgba(17,124,128,0.2);
+}
+
+/* Text inputs and transcript editor */
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox [data-baseweb="select"],
+.stDateInput input {
+    background: #ffffff;
+    color: var(--text);
+    border-radius: 10px;
+    border-color: var(--border);
+}
+
+.stTextArea textarea {
+    line-height: 1.8;
+}
+
+.stTextInput label,
+.stTextArea label,
+.stSelectbox label,
+.stCheckbox label,
+.stFileUploader label {
+    color: var(--text);
+    font-weight: 550;
+}
+
+/* Upload area */
+[data-testid="stFileUploader"] {
+    background: #ffffff;
+    border: 1px dashed #b9c9dc;
+    border-radius: 14px;
+    padding: 0.8rem;
+}
+
+/* Alerts */
+[data-testid="stAlert"] {
+    border-radius: 12px;
+}
+
+/* Dividers */
+hr {
+    border-color: var(--border);
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: var(--muted);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--teal) !important;
+}
+
+/* Tables */
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: #e7f7ef;
+    color: #16734d;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* Clinical safety notice */
+.safety-notice {
+    background: #fff8e8;
+    border: 1px solid #f1d9a5;
+    border-left: 4px solid #d99a23;
+    color: #704d13;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    line-height: 1.7;
+}
+
+/* Note evidence blocks */
+.evidence-card {
+    background: #edf7fa;
+    border: 1px solid #cce6ec;
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 0.6rem 0;
+}
+
+/* Footer */
+.footer-note {
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .block-container {
+        padding: 1rem;
+    }
+
+    .hero-banner {
+        padding: 1.5rem 1.2rem;
+        border-radius: 14px;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    [data-testid="stMetric"] {
+        padding: 0.9rem;
+    }
+}
+
+/* Fix input contrast and readability */
+.stApp,
+.stApp p,
+.stApp label,
+.stApp [data-testid="stMarkdownContainer"] {
+    color: #172b4d;
+}
+
+.stTextArea textarea,
+.stTextInput input,
+.stNumberInput input {
+    background-color: #ffffff !important;
+    color: #172b4d !important;
+    border: 1px solid #ccd8e7 !important;
+    caret-color: #087f8c;
+}
+
+.stTextArea textarea::placeholder,
+.stTextInput input::placeholder {
+    color: #718198 !important;
+}
+
+.stTextArea textarea:focus,
+.stTextInput input:focus {
+    border-color: #087f8c !important;
+    box-shadow: 0 0 0 2px rgba(8, 127, 140, 0.12) !important;
+}
+
+.stButton > button p {
+    color: #ffffff !important;
+}
+
+[data-testid="stFileUploader"] section {
+    background: #ffffff;
+}
+
+[data-testid="stFileUploader"] button {
+    color: #172b4d;
+}
+
+[data-testid="stAlert"] p {
+    color: #172b4d;
+}
+
+/* FIX: Sidebar text visibility */
+section[data-testid="stSidebar"] {
+    background-color: #13233f !important;
+}
+
+/* Make all sidebar text readable */
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: #f1f5fb !important;
+}
+
+/* Navigation labels */
+section[data-testid="stSidebar"] .stRadio label,
+section[data-testid="stSidebar"] .stRadio label p {
+    color: #f1f5fb !important;
+    font-weight: 500;
+}
+
+/* Muted supporting information */
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+    color: #b8c7dc !important;
+}
+
+/* Keep sidebar links readable */
+section[data-testid="stSidebar"] a {
+    color: #70d5dc !important;
+}
+
+/* Sidebar separators */
+section[data-testid="stSidebar"] hr {
+    border-color: #3a4d69 !important;
+}
